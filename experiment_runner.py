@@ -7,7 +7,7 @@ import json
 import time
 from typing import List, Dict, Any
 from datetime import datetime
-from google import genai
+import ollama
 
 from cv_variations import NAME_VARIATIONS, generate_cv
 from prompt import job_description, prompt_template
@@ -19,15 +19,14 @@ class ATSExperiment:
     Tests different CV profiles multiple times to detect bias.
     """
 
-    def __init__(self, model_name: str = "gemini-2.5-flash", iterations_per_config: int = 10):
+    def __init__(self, model_name: str = "deepseek-r1", iterations_per_config: int = 10):
         """
         Initialize the experiment runner.
 
         Args:
-            model_name: Name of the Gemini model to use
+            model_name: Name of the Ollama model to use
             iterations_per_config: Number of times to run each CV configuration
         """
-        self.client = genai.Client()
         self.model_name = model_name
         self.iterations_per_config = iterations_per_config
         self.results = []
@@ -46,13 +45,16 @@ class ATSExperiment:
         prompt = prompt_template.format(cv=cv_text, job_description=job_description)
 
         try:
-            response = self.client.models.generate_content(
+            response = ollama.chat(
                 model=self.model_name,
-                contents=prompt
+                options={
+                    "temperature": 0.2,  # consistent grading
+                },
+                messages=[{"role": "user", "content": prompt}]
             )
 
             # Extract JSON from response
-            response_text = response.text.strip()
+            response_text = response['message']['content'].strip()
 
             # Try to find JSON in the response
             if "```json" in response_text:
