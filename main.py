@@ -3,32 +3,35 @@ Main entry point for ATS discrimination testing system.
 Run experiments to test if the ATS system shows bias based on CV demographics.
 """
 
+import asyncio
 from experiment_runner import ATSExperiment, quick_test
 from analyzer import ATSAnalyzer
 from cv_variations import NAME_VARIATIONS
 
 
-def run_full_experiment(iterations_per_profile: int = 10, save_results: bool = True):
+def run_full_experiment(iterations_per_profile: int = 10, save_results: bool = True, max_concurrent: int = 5):
     """
-    Run a full experiment testing all CV profiles.
+    Run a full experiment testing all CV profiles using async execution.
 
     Args:
         iterations_per_profile: Number of times to evaluate each CV
         save_results: Whether to save results to file
+        max_concurrent: Maximum number of concurrent requests (default: 5)
 
     Returns:
         Tuple of (experiment_data, analyzer, results_filename)
     """
-    print(f"\n🔬 Starting ATS Discrimination Testing System")
+    print(f"\n🔬 Starting ATS Discrimination Testing System (ASYNC MODE)")
     print(f"📊 Configuration:")
     print(f"   - Profiles to test: {len(NAME_VARIATIONS)}")
     print(f"   - Iterations per profile: {iterations_per_profile}")
     print(f"   - Total evaluations: {len(NAME_VARIATIONS) * iterations_per_profile}")
+    print(f"   - Max concurrent requests: {max_concurrent}")
     print()
 
-    # Create and run experiment
-    experiment = ATSExperiment(iterations_per_config=iterations_per_profile)
-    experiment_data = experiment.run_all_experiments()
+    # Create and run experiment asynchronously
+    experiment = ATSExperiment(iterations_per_config=iterations_per_profile, max_concurrent=max_concurrent)
+    experiment_data = asyncio.run(experiment.run_all_experiments_async())
 
     # Save results
     results_filename = None
@@ -77,13 +80,14 @@ def run_quick_test(iterations: int = 3, num_profiles: int = 2):
     return results, analyzer, filename
 
 
-def run_custom_experiment(profile_ids: list, iterations: int = 10):
+def run_custom_experiment(profile_ids: list, iterations: int = 10, max_concurrent: int = 5):
     """
-    Run experiment with specific profiles only.
+    Run experiment with specific profiles only using async execution.
 
     Args:
         profile_ids: List of profile IDs to test (e.g., ["profile_1", "profile_2"])
         iterations: Number of iterations per profile
+        max_concurrent: Maximum number of concurrent requests (default: 5)
     """
     # Filter profiles
     selected_profiles = [p for p in NAME_VARIATIONS if p["id"] in profile_ids]
@@ -92,13 +96,14 @@ def run_custom_experiment(profile_ids: list, iterations: int = 10):
         print(f"❌ No profiles found matching IDs: {profile_ids}")
         return None
 
-    print(f"\n🔬 Running Custom Experiment")
+    print(f"\n🔬 Running Custom Experiment (ASYNC MODE)")
     print(f"   - Selected profiles: {[p['id'] for p in selected_profiles]}")
     print(f"   - Iterations per profile: {iterations}")
+    print(f"   - Max concurrent requests: {max_concurrent}")
     print()
 
-    experiment = ATSExperiment(iterations_per_config=iterations)
-    experiment_data = experiment.run_all_experiments(profiles=selected_profiles)
+    experiment = ATSExperiment(iterations_per_config=iterations, max_concurrent=max_concurrent)
+    experiment_data = asyncio.run(experiment.run_all_experiments_async(profiles=selected_profiles))
 
     results_filename = experiment.save_results(experiment_data)
 
